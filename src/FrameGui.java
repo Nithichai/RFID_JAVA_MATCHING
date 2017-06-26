@@ -41,7 +41,7 @@ public class FrameGui extends Thread {
 	private JButton searchButton;
 	private JButton refreshButton;
 	
-	public static String[] tableHeader = {"user_event_id", "user_name", "running_no"};
+	public static String[] tableHeader = {"user_name", "txt_running_no", "event_id"};
 	private  String[][] tableData = new String[0][tableHeader.length];
 	private String[] antennaSet = {"Antenna1", "Antenna2", "Antenna3", "Antenna4"};
 	
@@ -69,8 +69,6 @@ public class FrameGui extends Thread {
 	public FrameGui() {
 		initialize();
 		db = new Database();
-		db.getRunnerList();
-		tableData = db.getTable();
 		rfid = new Rfid();
 	}
 
@@ -163,8 +161,7 @@ public class FrameGui extends Thread {
 			            JOptionPane.YES_NO_OPTION);
 			        if (reply == JOptionPane.YES_OPTION){
 			        	System.out.println("Set");
-			        	db.addTagToDatabase(selectionRow[0], selectionRow[2], rfid.tag);
-			        	db.getRunnerList();
+			        	db.addTagToDatabase(selectionRow[2], selectionRow[1], rfid.tag);
 			        	tableData = db.getTable();
 			        }
 				} else {
@@ -223,7 +220,7 @@ public class FrameGui extends Thread {
 					cancelButton.setEnabled(false);
 					nameTextField.setEnabled(false);
 					searchButton.setEnabled(false);
-					refreshButton.setEnabled(false);
+//					refreshButton.setEnabled(false);
 				}
 			}
 		});
@@ -250,7 +247,7 @@ public class FrameGui extends Thread {
 					cancelButton.setEnabled(true);
 					nameTextField.setEnabled(true);
 					searchButton.setEnabled(true);
-					refreshButton.setEnabled(true);
+//					refreshButton.setEnabled(true);
 				} else {
 					System.out.println("Stop");
 					startButton.setText("Start");
@@ -258,7 +255,7 @@ public class FrameGui extends Thread {
 					cancelButton.setEnabled(false);
 					nameTextField.setEnabled(false);
 					searchButton.setEnabled(false);
-					refreshButton.setEnabled(false);
+//					refreshButton.setEnabled(false);
 				}
 			}
 		});
@@ -278,8 +275,11 @@ public class FrameGui extends Thread {
 		searchButton.setBounds(575, 295, 207, 25);
 		searchButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				ArrayList<String[]> list = new ArrayList<String[]> ();
+				
+				db.updateRunnerList(nameTextField.getText().trim());
 				tableData = db.getTable();
+				
+				ArrayList<String[]> list = new ArrayList<String[]> ();
 				for (int i = 0; i < tableData.length; i++) {
 					String[] datas = new String[tableHeader.length];
 					System.arraycopy(tableData[i], 0, datas, 0, tableHeader.length);
@@ -297,16 +297,14 @@ public class FrameGui extends Thread {
 			}
 		});
 		frame.getContentPane().add(searchButton);
-		
-		refreshButton = new JButton("Refresh");
-		refreshButton.setBounds(575, 328, 207, 25);
-		refreshButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				db.getRunnerList();
-				tableData = db.getTable();
-			}
-		});
-		frame.getContentPane().add(refreshButton);
+//		refreshButton = new JButton("Refresh");
+//		refreshButton.setBounds(575, 328, 207, 25);
+//		refreshButton.addActionListener(new ActionListener() {
+//			public void actionPerformed(ActionEvent arg0) {
+//				
+//			}
+//		});
+//		frame.getContentPane().add(refreshButton);
 		
 		frame.setVisible(true);
 		antennaComboBox.setEnabled(false);
@@ -315,7 +313,7 @@ public class FrameGui extends Thread {
 		cancelButton.setEnabled(false);
 		nameTextField.setEnabled(false);
 		searchButton.setEnabled(false);
-		refreshButton.setEnabled(false);
+//		refreshButton.setEnabled(false);
 	}
 	
 	private void update() {

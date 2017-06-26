@@ -16,18 +16,21 @@ public class Database {
 	
 	private JSONArray userEventJSON;
 	private int colLength = FrameGui.tableHeader.length;
+	private String mainIP = "http://192.168.43.129:7777";
 	
 	public Database() {
 		userEventJSON = new JSONArray();
 	}
 	
-	public void getRunnerList() {
-		String ip = "http://192.168.86.130:7777/name/select";
+	public void updateRunnerList(String runningNO) {
+		String ip = mainIP + "/select_run/" + runningNO;
 		URL url;
 		try {
 			url = new URL(ip);
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setRequestMethod("GET");
+			con.setConnectTimeout(10000);
+			con.setReadTimeout(10000);
 			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
 			StringBuffer response = new StringBuffer();
 			String inputLine;
@@ -36,7 +39,6 @@ public class Database {
 			rd.close();
 			con.disconnect();
 			userEventJSON = new JSONArray(response.toString());
-			System.out.println(userEventJSON.toString());
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -54,14 +56,15 @@ public class Database {
 			jo.put("Tagdata", tag);
 			JSONArray ja = new JSONArray();
 			ja.put(jo);
-			String ip = "http://192.168.86.130:7777/name/insert";
+			String ip = mainIP + "/insert";
 			URL url = new URL(ip);
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setDoOutput(true);
 			con.setDoInput(true);
 			con.setRequestProperty("Content-Type", "application/json");
 			con.setRequestMethod("POST");
-			con.connect();
+			con.setConnectTimeout(10000);
+			con.setReadTimeout(10000);
 			OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
 			wr.write(jo.toString());
 			wr.flush();
@@ -77,6 +80,29 @@ public class Database {
 		} catch (ProtocolException e) {
 			e.printStackTrace();
 		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void deleteTagToDatabase(String run_no) {
+		String ip = mainIP + "/delete/" + run_no;
+		URL url;
+		try {
+			url = new URL(ip);
+			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			con.setRequestMethod("DELETE");
+			con.setConnectTimeout(10000);
+			con.setReadTimeout(10000);
+			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
+			StringBuffer response = new StringBuffer();
+			String inputLine;
+			while ((inputLine = rd.readLine()) != null)
+				response.append(inputLine);
+			rd.close();
+			con.disconnect();
+		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -99,10 +125,6 @@ public class Database {
 			e.printStackTrace();
 		}
 		return table;
-	}
-	
-	public JSONArray getUserEventJSON() {
-		return userEventJSON;
 	}
 	
 	public boolean datainJSON(String data) {
