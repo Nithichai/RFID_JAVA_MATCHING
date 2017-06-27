@@ -14,12 +14,15 @@ import org.json.JSONObject;
 
 public class Database {
 	
-	private JSONArray userEventJSON;
-	private int colLength = FrameGui.tableHeader.length;
-	private String mainIP = "http://192.168.43.129:7777";
+	private JSONArray runnerList;
+	private JSONArray tagList;
+	private String[] runnerSetData = {"user_name", "txt_running_no", "event_id"};
+	private String[] tagSetData = {"running_no", "Tagdata"};
+	private String mainIP = "http://192.168.1.198:7777";
 	
 	public Database() {
-		userEventJSON = new JSONArray();
+		runnerList = new JSONArray();
+		tagList = new JSONArray();
 	}
 	
 	public void updateRunnerList(String runningNO) {
@@ -38,7 +41,7 @@ public class Database {
 				response.append(inputLine);
 			rd.close();
 			con.disconnect();
-			userEventJSON = new JSONArray(response.toString());
+			runnerList = new JSONArray(response.toString());
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -48,7 +51,33 @@ public class Database {
 		}
 	}
 	
-	public void addTagToDatabase(String id, String run_no, String tag) {
+	public void updateTagList() {
+		String ip = mainIP + "/select_all";
+		URL url;
+		try {
+			url = new URL(ip);
+			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			con.setRequestMethod("GET");
+			con.setConnectTimeout(10000);
+			con.setReadTimeout(10000);
+			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
+			StringBuffer response = new StringBuffer();
+			String inputLine;
+			while ((inputLine = rd.readLine()) != null)
+				response.append(inputLine);
+			rd.close();
+			con.disconnect();
+			tagList = new JSONArray(response.toString());
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void addTagToTable(String id, String run_no, String tag) {
 		try {
 			JSONObject jo = new JSONObject();
 			jo.put("event_id", id);
@@ -86,38 +115,56 @@ public class Database {
 		}
 	}
 	
-	public void deleteTagToDatabase(String run_no) {
-		String ip = mainIP + "/delete/" + run_no;
-		URL url;
+//	public void deleteTagToDatabase(String run_no) {
+//		String ip = mainIP + "/delete/" + run_no;
+//		URL url;
+//		try {
+//			url = new URL(ip);
+//			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+//			con.setRequestMethod("DELETE");
+//			con.setConnectTimeout(10000);
+//			con.setReadTimeout(10000);
+//			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
+//			StringBuffer response = new StringBuffer();
+//			String inputLine;
+//			while ((inputLine = rd.readLine()) != null)
+//				response.append(inputLine);
+//			rd.close();
+//			con.disconnect();
+//		} catch (MalformedURLException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//	}
+	
+	public String[][] getRunnerTable() {
+		String[][] table = new String[0][runnerSetData.length];
 		try {
-			url = new URL(ip);
-			HttpURLConnection con = (HttpURLConnection) url.openConnection();
-			con.setRequestMethod("DELETE");
-			con.setConnectTimeout(10000);
-			con.setReadTimeout(10000);
-			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
-			StringBuffer response = new StringBuffer();
-			String inputLine;
-			while ((inputLine = rd.readLine()) != null)
-				response.append(inputLine);
-			rd.close();
-			con.disconnect();
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
+			if (runnerList.length() > 0) {
+				table = new String[runnerList.length()][runnerSetData.length];
+				for (int i = 0; i < table.length; i++) {
+					JSONObject obj = new JSONObject(runnerList.get(i).toString());
+					for (int j = 0; j < runnerSetData.length; j++) {
+						table[i][j] = obj.get(runnerSetData[j].toString()).toString();
+					}
+				}
+			}
+		} catch (JSONException e) {
 			e.printStackTrace();
 		}
+		return table;
 	}
 	
-	public String[][] getTable() {
-		String[][] table = new String[0][colLength];
+	public String[][] getTagTable() {
+		String[][] table = new String[0][tagSetData.length];
 		try {
-			if (userEventJSON.length() > 0) {
-				table = new String[userEventJSON.length()][colLength];
+			if (tagList.length() > 0) {
+				table = new String[tagList.length()][tagSetData.length];
 				for (int i = 0; i < table.length; i++) {
-					JSONObject obj = new JSONObject(userEventJSON.get(i).toString());
-					for (int j = 0; j < colLength; j++) {
-						table[i][j] = obj.get(FrameGui.tableHeader[j].toString()).toString();
+					JSONObject obj = new JSONObject(tagList.get(i).toString());
+					for (int j = 0; j < tagSetData.length; j++) {
+						table[i][j] = obj.get(tagSetData[j].toString()).toString();
 					}
 				}
 			}
@@ -129,10 +176,10 @@ public class Database {
 	
 	public boolean datainJSON(String data) {
 		try {
-			for (int i = 0; i < userEventJSON.length(); i++) {
-				JSONObject obj = new JSONObject(userEventJSON.get(i).toString());
-				System.out.println(obj.get(FrameGui.tableHeader[1].toString()).toString());
-				if (obj.get(FrameGui.tableHeader[1]).toString().equals(data)) {
+			for (int i = 0; i < runnerList.length(); i++) {
+				JSONObject obj = new JSONObject(runnerList.get(i).toString());
+				System.out.println(obj.get(runnerSetData[1].toString()).toString());
+				if (obj.get(runnerSetData[1]).toString().equals(data)) {
 					return true;
 				}
 			}
