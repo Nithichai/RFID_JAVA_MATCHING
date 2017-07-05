@@ -109,7 +109,7 @@ public class Rfid implements GetReadData {
 			System.out.println("Antenna 4 finished inventory");
 		}else if(!"".equals(data)){
 //			System.out.println("data" + data + "  antenna" + antNo);
-			tag = data;
+			tag = data.substring(0, data.length()-6);
 			FrameGui.tagLabel.setText(tag);
 		}
 	}

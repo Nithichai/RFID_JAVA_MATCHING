@@ -102,7 +102,7 @@ public class FrameGui extends Thread {
 	private void initialize() {
 		frame = new JFrame();
 		frame.setResizable(false);
-		frame.setBounds(100, 100, 800, 800);
+		frame.setBounds(100, 100, 1280, 720);
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 		frame.addWindowListener(new WindowAdapter() {
@@ -122,12 +122,12 @@ public class FrameGui extends Thread {
 		
 		runningPanel = new JPanel();
 		runningPanel.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Runner Table", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(51, 51, 51)));
-		runningPanel.setBounds(12, 526, 770, 229);
+		runningPanel.setBounds(12, 526, 1246, 153);
 		frame.getContentPane().add(runningPanel);
 		runningPanel.setLayout(null);
 		
 		runnerScrollPane = new JScrollPane();
-		runnerScrollPane.setBounds(12, 23, 746, 193);
+		runnerScrollPane.setBounds(12, 23, 1219, 116);
 		runningPanel.add(runnerScrollPane);
 		
 		runnerTable = new JTable();
@@ -172,12 +172,12 @@ public class FrameGui extends Thread {
 				"Tag Table", 
 				TitledBorder.LEADING, 
 				TitledBorder.TOP, null, null));
-		tagTablePanel.setBounds(12, 16, 498, 498);
+		tagTablePanel.setBounds(12, 16, 972, 498);
 		frame.getContentPane().add(tagTablePanel);
 		tagTablePanel.setLayout(null);
 		
 		tagScrollPane = new JScrollPane();
-		tagScrollPane.setBounds(12, 31, 474, 451);
+		tagScrollPane.setBounds(12, 31, 947, 451);
 		tagTablePanel.add(tagScrollPane);
 		
 		tagTable = new JTable();
@@ -191,7 +191,7 @@ public class FrameGui extends Thread {
 		
 		rfidPanel = new JPanel();
 		rfidPanel.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "RFID Status", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(51, 51, 51)));
-		rfidPanel.setBounds(522, 16, 260, 277);
+		rfidPanel.setBounds(1000, 16, 260, 277);
 		frame.getContentPane().add(rfidPanel);
 		rfidPanel.setLayout(null);
 		
@@ -398,7 +398,7 @@ public class FrameGui extends Thread {
 				new EtchedBorder(EtchedBorder.LOWERED, null, null), 
 				"Server Status", TitledBorder.LEADING, 
 				TitledBorder.TOP, null, new Color(51, 51, 51)));
-		statusPanel.setBounds(522, 306, 260, 208);
+		statusPanel.setBounds(1000, 306, 260, 208);
 		frame.getContentPane().add(statusPanel);
 		statusPanel.setLayout(null);
 		

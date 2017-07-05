@@ -38,7 +38,7 @@ public class Database {
 			con.setRequestMethod("POST");
 			con.setConnectTimeout(10000);
 			con.setReadTimeout(10000);
-			con.connect();
+//			con.connect();
 			if (con.getOutputStream() == null) {
 				return false;
 			}
@@ -51,7 +51,7 @@ public class Database {
 			while ((inputLine = rd.readLine()) != null)
 				response.append(inputLine);
 			rd.close();
-			con.disconnect();
+//			con.disconnect();
 			runnerList = new JSONArray(response.toString());
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -83,7 +83,7 @@ public class Database {
 			while ((inputLine = rd.readLine()) != null)
 				response.append(inputLine);
 			rd.close();
-			con.disconnect();
+//			con.disconnect();
 			tagList = new JSONArray(response.toString());
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -113,16 +113,17 @@ public class Database {
 			con.setRequestMethod("POST");
 			con.setConnectTimeout(10000);
 			con.setReadTimeout(10000);
+//			con.connect();
 			OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
 			wr.write(jo.toString());
 			wr.flush();
-//			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
-//			String line;
-//			while ((line = rd.readLine()) != null)
-//				System.out.println(line);
-//			rd.close();
+			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
+			String line;
+			while ((line = rd.readLine()) != null)
+				System.out.println(line);
+			rd.close();
 			wr.close();
-			con.disconnect();
+//			con.disconnect();
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		} catch (ProtocolException e) {
