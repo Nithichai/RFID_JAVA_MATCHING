@@ -10,6 +10,7 @@ import javax.swing.table.DefaultTableModel;
 
 import com.jlrfid.service.RFIDException;
 
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.JComboBox;
@@ -54,6 +55,7 @@ public class FrameGui extends Thread {
 	private JLabel stateServerLabel;
 	private JPanel rfidPanel;
 	private JToggleButton connectServerButton;
+	private JComboBox<Object> eventComboBox;
 	
 	private Database db;
 	private Rfid rfid;
@@ -64,6 +66,7 @@ public class FrameGui extends Thread {
 	private String[][] tableDataTag = new String[0][tableHeaderTag.length];
 	private String[] antennaSet = {"Antenna1", "Antenna2", "Antenna3", "Antenna4"};
 	private String[] selectionRow;
+	private String[] eventCombo;
 
 	public static void main(String[] args) {
 		FrameGui frame = new FrameGui();
@@ -122,12 +125,12 @@ public class FrameGui extends Thread {
 		
 		runningPanel = new JPanel();
 		runningPanel.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Runner Table", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(51, 51, 51)));
-		runningPanel.setBounds(12, 526, 1246, 153);
+		runningPanel.setBounds(12, 553, 1248, 126);
 		frame.getContentPane().add(runningPanel);
 		runningPanel.setLayout(null);
 		
 		runnerScrollPane = new JScrollPane();
-		runnerScrollPane.setBounds(12, 23, 1219, 116);
+		runnerScrollPane.setBounds(12, 24, 1224, 90);
 		runningPanel.add(runnerScrollPane);
 		
 		runnerTable = new JTable();
@@ -172,12 +175,12 @@ public class FrameGui extends Thread {
 				"Tag Table", 
 				TitledBorder.LEADING, 
 				TitledBorder.TOP, null, null));
-		tagTablePanel.setBounds(12, 16, 972, 498);
+		tagTablePanel.setBounds(12, 16, 972, 525);
 		frame.getContentPane().add(tagTablePanel);
 		tagTablePanel.setLayout(null);
 		
 		tagScrollPane = new JScrollPane();
-		tagScrollPane.setBounds(12, 31, 947, 451);
+		tagScrollPane.setBounds(12, 31, 947, 482);
 		tagTablePanel.add(tagScrollPane);
 		
 		tagTable = new JTable();
@@ -292,14 +295,17 @@ public class FrameGui extends Thread {
 				if (runnerTable.getSelectedRow() == -1) {
 					JOptionPane.showMessageDialog(frame, "Please select name in \"Runner Table\"");
 				}
-				if (name.length() > 0 && tag.length() > 0 && runnerTable.getSelectedRow() != -1) {
+				if (eventComboBox.getSelectedIndex() == -1) {
+					JOptionPane.showMessageDialog(frame, "Please select event in \"Event\"");
+				}
+				if (name.length() > 0 && tag.length() > 0 && runnerTable.getSelectedRow() != -1 && eventComboBox.getSelectedIndex() != -1) {
 					if (db.isDataInTagList(name)) {
 						int reply = JOptionPane.showConfirmDialog(
 								frame, 
 								"Are you sure to 'update' tag to runner : " + selectionRow[1] + " ?", "Really Set Tag?", 
 								JOptionPane.YES_NO_OPTION );
 				        if (reply == JOptionPane.YES_OPTION){
-				        	db.addTagToTable(selectionRow[2], selectionRow[1], Rfid.tag);
+				        	db.addTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
 				        	tableDataRunner = db.getRunnerTable();
 				        	boolean isConnected = db.updateTagList();
 				    		if (isConnected) {
@@ -320,7 +326,7 @@ public class FrameGui extends Thread {
 								"Are you sure to 'insert' tag to runner : " + selectionRow[1] + " ?", "Really Set Tag?", 
 								JOptionPane.YES_NO_OPTION );
 				        if (reply == JOptionPane.YES_OPTION){
-				        	db.addTagToTable(selectionRow[2], selectionRow[1], Rfid.tag);
+				        	db.addTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
 				        	tableDataRunner = db.getRunnerTable();
 				        	boolean isConnected = db.updateTagList();
 				    		if (isConnected) {
@@ -398,12 +404,12 @@ public class FrameGui extends Thread {
 				new EtchedBorder(EtchedBorder.LOWERED, null, null), 
 				"Server Status", TitledBorder.LEADING, 
 				TitledBorder.TOP, null, new Color(51, 51, 51)));
-		statusPanel.setBounds(1000, 306, 260, 208);
+		statusPanel.setBounds(1000, 300, 260, 242);
 		frame.getContentPane().add(statusPanel);
 		statusPanel.setLayout(null);
 		
-		JLabel statusIPLabel = new JLabel("IP : ");
-		statusIPLabel.setBounds(13, 30, 56, 25);
+		JLabel statusIPLabel = new JLabel("IP");
+		statusIPLabel.setBounds(13, 30, 29, 25);
 		statusPanel.add(statusIPLabel);
 		
 		JLabel stateLabel = new JLabel("State : ");
@@ -426,6 +432,14 @@ public class FrameGui extends Thread {
 						nameTextField.setEnabled(true);
 						searchButton.setEnabled(true);
 						connectServerButton.setText("Disconnected");
+						
+						eventCombo = db.getEventComboBox();
+						eventComboBox.setEnabled(true);
+						if (eventCombo.length > 0) {
+							eventComboBox.setModel(new DefaultComboBoxModel<Object>(eventCombo));
+							eventComboBox.setSelectedIndex(0);
+							System.out.println(eventComboBox.getItemCount());
+						}
 					} else {
 						JOptionPane.showMessageDialog(frame, "Server Error");
 						stateServerLabel.setText("No Connection");
@@ -433,6 +447,7 @@ public class FrameGui extends Thread {
 						nameTextField.setEnabled(false);
 						searchButton.setEnabled(false);
 						connectServerButton.setText("Connect Server");
+						eventComboBox.setEnabled(false);
 					}
 				} else {
 					stateServerLabel.setText("No Connection");
@@ -440,6 +455,7 @@ public class FrameGui extends Thread {
 					nameTextField.setEnabled(false);
 					searchButton.setEnabled(false);
 					connectServerButton.setText("Connect Server");
+					eventComboBox.setEnabled(false);
 				}
 			}
 		});
@@ -467,6 +483,16 @@ public class FrameGui extends Thread {
 		searchButton.setEnabled(false);
 		searchButton.setBounds(13, 170, 238, 25);
 		statusPanel.add(searchButton);
+		
+		eventCombo = new String[0];
+		eventComboBox = new JComboBox<Object> (eventCombo);
+		eventComboBox.setEnabled(false);
+		eventComboBox.setBounds(84, 207, 164, 25);
+		statusPanel.add(eventComboBox);
+		
+		JLabel eventLabel = new JLabel("Event");
+		eventLabel.setBounds(13, 207, 55, 25);
+		statusPanel.add(eventLabel);
 		searchButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				searchButton.setText("Searching....");

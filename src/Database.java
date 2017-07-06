@@ -98,7 +98,7 @@ public class Database {
 		return true;
 	}
 	
-	public void addTagToTable(String id, String run_no, String tag) {
+	public void addTagToTable(int id, String run_no, String tag) {
 		try {
 			JSONObject jo = new JSONObject();
 			jo.put("event_id", id);
@@ -133,6 +133,53 @@ public class Database {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public String[] getEventComboBox() {
+		JSONArray eventList;
+		try {
+			String ip = mainIP + "/select_event";
+			URL url = new URL(ip);
+			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			con.setRequestMethod("GET");
+			con.setConnectTimeout(10000);
+			con.setReadTimeout(10000);
+			if (con.getInputStream() == null) {
+				return new String[0];
+			}
+			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
+			StringBuffer response = new StringBuffer();
+			String inputLine;
+			while ((inputLine = rd.readLine()) != null)
+				response.append(inputLine);
+			rd.close();
+//			con.disconnect();
+			eventList = new JSONArray(response.toString());
+			System.out.println(eventList.toString());
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			return new String[0];
+		} catch (IOException e) {
+			e.printStackTrace();
+			return new String[0];
+		} catch (JSONException e) {
+			e.printStackTrace();
+			return new String[0];
+		}
+		
+		String[] eventTable = new String[eventList.length()];
+		try {
+			if (eventList.length() > 0) {
+				for (int i = 0; i < eventTable.length; i++) {
+					JSONObject obj = new JSONObject(eventList.get(i).toString());
+					eventTable[i] = obj.getString("event_name");
+				}
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		System.out.println(eventTable.length);
+		return eventTable;
 	}
 	
 //	public void deleteTagToDatabase(String run_no) {
