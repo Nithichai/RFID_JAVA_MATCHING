@@ -298,58 +298,63 @@ public class FrameGui extends Thread {
 				if (eventComboBox.getSelectedIndex() == -1) {
 					JOptionPane.showMessageDialog(frame, "Please select event in \"Event\"");
 				}
-				if (name.length() > 0 && tag.length() > 0 && runnerTable.getSelectedRow() != -1 && eventComboBox.getSelectedIndex() != -1) {
-					if (db.isDataInTagList(name)) {
-						int reply = JOptionPane.showConfirmDialog(
-								frame, 
-								"Are you sure to 'update' tag to runner : " + selectionRow[1] + " ?", "Really Set Tag?", 
-								JOptionPane.YES_NO_OPTION );
-				        if (reply == JOptionPane.YES_OPTION){
-				        	db.addTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
-				        	tableDataRunner = db.getRunnerTable();
-				        	boolean isConnected = db.updateTagList();
-				    		if (isConnected) {
-				    			tableDataTag = db.getTagTable();
-				    			JOptionPane.showMessageDialog(frame, selectionRow[1] + " has tag " + rfid.getTag());
-				    		} else {
-				    			JOptionPane.showMessageDialog(frame, "Server Error");
-								stateServerLabel.setText("No Connection");
-								connectServerButton.setSelected(false);
-								nameTextField.setEnabled(false);
-								searchButton.setEnabled(false);
-								connectServerButton.setText("Connect Server");
-				    		}
-				        }
-					} else {
-						int reply = JOptionPane.showConfirmDialog(
-								frame, 
-								"Are you sure to 'insert' tag to runner : " + selectionRow[1] + " ?", "Really Set Tag?", 
-								JOptionPane.YES_NO_OPTION );
-				        if (reply == JOptionPane.YES_OPTION){
-				        	db.addTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
-				        	tableDataRunner = db.getRunnerTable();
-				        	boolean isConnected = db.updateTagList();
-				    		if (isConnected) {
-				    			tableDataTag = db.getTagTable();
-				    			JOptionPane.showMessageDialog(frame, selectionRow[1] + " has tag " + rfid.getTag());
-				    		} else {
-				    			JOptionPane.showMessageDialog(frame, "Server Error");
-								stateServerLabel.setText("No Connection");
-								connectServerButton.setSelected(false);
-								nameTextField.setEnabled(false);
-								searchButton.setEnabled(false);
-								connectServerButton.setText("Connect Server");
-				    		}
-				        }
+				if (name.length() > 0 
+						&& tag.length() > 0 
+						&& runnerTable.getSelectedRow() != -1 
+						&& eventComboBox.getSelectedIndex() != -1) {
+					int reply = JOptionPane.showConfirmDialog(
+							frame, 
+							"Are you sure to set tag to runner : " + selectionRow[1] + " ?", "Really Set Tag?", 
+							JOptionPane.YES_NO_OPTION );
+					if (reply == JOptionPane.YES_OPTION){
+						boolean canAddTag = db.addTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
+						if (canAddTag) {
+							JOptionPane.showMessageDialog(frame, "Insert Complete\n" + selectionRow[1] + " has tag " + rfid.getTag());
+						} else {
+							int updateReply = JOptionPane.showConfirmDialog(
+									frame, 
+									"This tag is used or this runner is registed.\n" +
+									"Are you sure to 'update' tag to runner : " + selectionRow[1] + " ?", "Really Update Tag?", 
+									JOptionPane.YES_NO_OPTION);
+							if (updateReply == JOptionPane.YES_OPTION) {
+								boolean canDeleteRow = db.deleteRowFromTable(Rfid.tag);
+								boolean canUpdateTag = db.updateTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
+								if (canDeleteRow && canUpdateTag) {
+									JOptionPane.showMessageDialog(frame, "Update Complete\n" + selectionRow[1] + " has tag " + rfid.getTag());
+								} else  {
+									boolean canAddTagAfterUpdate = db.addTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
+									if (canAddTagAfterUpdate) {
+										JOptionPane.showMessageDialog(frame, "Update Complete");
+									}
+									else {
+										boolean canUpdateAfterAddTag = db.updateTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
+										if (canUpdateAfterAddTag)
+											JOptionPane.showMessageDialog(frame, "Update Complete");
+										else
+											JOptionPane.showMessageDialog(frame, "Update Failed");
+									}
+								}
+							}
+						}
+						tableDataRunner = db.getRunnerTable();
+			        	boolean isConnected = db.updateTagList();
+			    		if (isConnected) {
+			    			tableDataTag = db.getTagTable();
+			    		} else {
+			    			JOptionPane.showMessageDialog(frame, "Server Error");
+							stateServerLabel.setText("No Connection");
+							connectServerButton.setSelected(false);
+							nameTextField.setEnabled(false);
+							searchButton.setEnabled(false);
+							connectServerButton.setText("Connect Server");
+			    		}
 					}
 				}
 				setButton.setText("Set");
 			}
 		});
-		setButton.setEnabled(false);
 		
 		cancelButton = new JButton("Cancel");
-		cancelButton.setEnabled(false);
 		cancelButton.setBounds(13, 239, 116, 25);
 		rfidPanel.add(cancelButton);
 		cancelButton.addActionListener(new ActionListener() {
@@ -432,7 +437,6 @@ public class FrameGui extends Thread {
 						nameTextField.setEnabled(true);
 						searchButton.setEnabled(true);
 						connectServerButton.setText("Disconnected");
-						
 						eventCombo = db.getEventComboBox();
 						eventComboBox.setEnabled(true);
 						if (eventCombo.length > 0) {
@@ -461,7 +465,7 @@ public class FrameGui extends Thread {
 		});
 		statusPanel.add(connectServerButton);
 		
-		ipServerTextField = new JTextField("192.168.1.198:7777");
+		ipServerTextField = new JTextField("192.168.1.193:7777");
 		ipServerTextField.setBounds(60, 30, 188, 25);
 		statusPanel.add(ipServerTextField);
 		
@@ -482,17 +486,7 @@ public class FrameGui extends Thread {
 		searchButton = new JButton("Search");
 		searchButton.setEnabled(false);
 		searchButton.setBounds(13, 170, 238, 25);
-		statusPanel.add(searchButton);
 		
-		eventCombo = new String[0];
-		eventComboBox = new JComboBox<Object> (eventCombo);
-		eventComboBox.setEnabled(false);
-		eventComboBox.setBounds(84, 207, 164, 25);
-		statusPanel.add(eventComboBox);
-		
-		JLabel eventLabel = new JLabel("Event");
-		eventLabel.setBounds(13, 207, 55, 25);
-		statusPanel.add(eventLabel);
 		searchButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				searchButton.setText("Searching....");
@@ -529,6 +523,17 @@ public class FrameGui extends Thread {
 				searchButton.setText("Search");
 			}
 		});
+		statusPanel.add(searchButton);
+		
+		eventCombo = new String[0];
+		eventComboBox = new JComboBox<Object> (eventCombo);
+		eventComboBox.setEnabled(false);
+		eventComboBox.setBounds(84, 207, 164, 25);
+		statusPanel.add(eventComboBox);
+		
+		JLabel eventLabel = new JLabel("Event");
+		eventLabel.setBounds(13, 207, 55, 25);
+		statusPanel.add(eventLabel);
 	}
 	
 	private void update() {

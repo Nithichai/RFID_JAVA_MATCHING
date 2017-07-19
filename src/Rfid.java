@@ -70,7 +70,7 @@ public class Rfid implements GetReadData {
 				else
 					antEnable[index] = 0;
 				long[] dwellTime = new long[]{500, 500, 500, 500};
-				long[] power = new long[]{300,300,250,200};
+				long[] power = new long[]{10, 10, 10, 10};
 				handler.SetAnt(antEnable,dwellTime,power);
 //				if(handler.SetAnt(antEnable,dwellTime,power)){
 //					System.out.println("succeed to set antenna parameter");

@@ -74,9 +74,9 @@ public class Database {
 			con.setRequestMethod("GET");
 			con.setConnectTimeout(10000);
 			con.setReadTimeout(10000);
-			if (con.getInputStream() == null) {
-				return false;
-			}
+//			if (con.getInputStream() == null) {
+//				return false;
+//			}
 			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
 			StringBuffer response = new StringBuffer();
 			String inputLine;
@@ -98,7 +98,7 @@ public class Database {
 		return true;
 	}
 	
-	public void addTagToTable(int id, String run_no, String tag) {
+	public boolean addTagToTable(int id, String run_no, String tag) {
 		try {
 			JSONObject jo = new JSONObject();
 			jo.put("event_id", id);
@@ -116,23 +116,122 @@ public class Database {
 //			con.connect();
 			OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
 			wr.write(jo.toString());
-			wr.flush();
+			wr.flush();			
 			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
-			String line;
-			while ((line = rd.readLine()) != null)
-				System.out.println(line);
+			StringBuffer response = new StringBuffer();
+			String inputLine;
+			while ((inputLine = rd.readLine()) != null)
+				response.append(inputLine);
 			rd.close();
 			wr.close();
+//			System.out.println(response);
+//			if (response.toString().equals("Conflict") || response.toString().equals("No Content"))
+//				return false;
 //			con.disconnect();
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
+			return false;
 		} catch (ProtocolException e) {
 			e.printStackTrace();
+			return false;
 		} catch (JSONException e) {
 			e.printStackTrace();
+			return false;
 		} catch (IOException e) {
 			e.printStackTrace();
+			return false;
 		}
+		return true;
+	}
+	
+	public boolean updateTagToTable(int id, String run_no, String tag) {
+		try {
+			JSONObject jo = new JSONObject();
+			jo.put("event_id", id);
+			jo.put("running_no", run_no);
+			jo.put("Tagdata", tag);
+			String ip = mainIP + "/update";
+			URL url = new URL(ip);
+			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			con.setDoOutput(true);
+			con.setDoInput(true);
+			con.setRequestProperty("Content-Type", "application/json");
+			con.setRequestMethod("POST");
+			con.setConnectTimeout(10000);
+			con.setReadTimeout(10000);
+//			con.connect();
+			OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
+			wr.write(jo.toString());
+			wr.flush();			
+			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
+			StringBuffer response = new StringBuffer();
+			String inputLine;
+			while ((inputLine = rd.readLine()) != null)
+				response.append(inputLine);
+			rd.close();
+			wr.close();
+			System.out.println(response.toString());
+//			if (response.toString().equals("Not Found") || response.toString().equals("No Content"))
+//				return false;
+//			con.disconnect();
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			return false;
+		} catch (ProtocolException e) {
+			e.printStackTrace();
+			return false;
+		} catch (JSONException e) {
+			e.printStackTrace();
+			return false;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	public boolean deleteRowFromTable(String tag) {
+		try {
+			JSONObject jo = new JSONObject();
+			jo.put("Tagdata", tag);
+			String ip = mainIP + "/delete_match";
+			URL url = new URL(ip);
+			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			con.setDoOutput(true);
+			con.setDoInput(true);
+			con.setRequestProperty("Content-Type", "application/json");
+			con.setRequestMethod("DELETE");
+			con.setConnectTimeout(10000);
+			con.setReadTimeout(10000);
+//			con.connect();
+			OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
+			wr.write(jo.toString());
+			wr.flush();			
+			BufferedReader rd = new BufferedReader(new InputStreamReader(con.getInputStream()));
+			StringBuffer response = new StringBuffer();
+			String inputLine;
+			while ((inputLine = rd.readLine()) != null)
+				response.append(inputLine);
+			rd.close();
+			wr.close();
+//			System.out.println(response.toString());
+//			if (response.toString().equals("Not Found") || response.toString().equals("No Content"))
+//				return false;
+//			con.disconnect();
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			return false;
+		} catch (ProtocolException e) {
+			e.printStackTrace();
+			return false;
+		} catch (JSONException e) {
+			e.printStackTrace();
+			return false;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
 	}
 	
 	public String[] getEventComboBox() {
@@ -255,11 +354,11 @@ public class Database {
 		return false;
 	}
 	
-	public boolean isDataInTagList(String data) {
+	public boolean isDataInTagList(String running_no) {
 		try {
 			for (int i = 0; i < tagList.length(); i++) {
 				JSONObject obj = new JSONObject(tagList.get(i).toString());
-				if (obj.get(tagSetData[0]).toString().equals(data)) {
+				if (obj.get(tagSetData[0]).toString().equals(running_no)) {
 					return true;
 				}
 			}
@@ -269,7 +368,19 @@ public class Database {
 		return false;
 	}
 	
-	
+	public boolean isTagIsRegis(String data) {
+		try {
+			for (int i = 0; i < tagList.length(); i++) {
+				JSONObject obj = new JSONObject(tagList.get(i).toString());
+				if (obj.get(tagSetData[1]).toString().equals(data)) {
+					return true;
+				}
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
 	
 	public void setIP(String ip) {
 		mainIP = "http://" + ip;
