@@ -383,7 +383,7 @@ public class Database {
 	}
 	
 	public void setIP(String ip) {
-		mainIP = "http://" + ip;
+		mainIP = ip;
 //		System.out.println(mainIP);
 	}
 	
