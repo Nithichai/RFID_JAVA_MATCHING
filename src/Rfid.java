@@ -11,11 +11,8 @@ public class Rfid implements GetReadData {
 	private int baudrate = 9600;
 	private int port = 20058;
 	private byte[] antEnable = new byte[4];
-	private String r2KPath = System.getProperty("user.dir") + "\\R2k.dll";
+	private String r2KPath = "R2k.dll";
 	
-//	public Rfid() {
-//		System.out.println("Start Rfid");
-//	}
 	
 	public boolean connectRFID(String ip, int baudrate, int port) {
 		MainHandler handler = new MainHandler();

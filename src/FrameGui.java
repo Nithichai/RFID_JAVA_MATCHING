@@ -8,6 +8,8 @@ import java.awt.Font;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableModel;
 
+import org.json.JSONException;
+
 import com.jlrfid.service.RFIDException;
 
 import javax.swing.DefaultComboBoxModel;
@@ -19,6 +21,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 import java.awt.event.ActionEvent;
 import javax.swing.JToggleButton;
 import javax.swing.ListSelectionModel;
@@ -26,6 +29,7 @@ import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 import javax.swing.border.EtchedBorder;
 import java.awt.Color;
+import javax.swing.ImageIcon;
 
 public class FrameGui extends Thread {
 
@@ -56,17 +60,26 @@ public class FrameGui extends Thread {
 	private JPanel rfidPanel;
 	private JToggleButton connectServerButton;
 	private JComboBox<Object> eventComboBox;
+	private JTextField registedTextField;
+	private JLabel registedLabel;
+	private JLabel dbRunnerLabel;
+	private JTextField dbRunnerValue;
 	
 	private Database db;
 	private Rfid rfid;
 	
-	private String[] tableHeaderRunner = {"Username", "Running ID", "Event ID"};
+	private String[] tableHeaderRunner = {"Username", "Running ID", "Event ID", "Register Status"};
 	private String[][] tableDataRunner = new String[0][tableHeaderRunner.length];
-	private String[] tableHeaderTag = {"Running ID", "Tag ID"};
+	private String[] tableHeaderTag = {"Running ID", "Tag ID", "Event ID"};
 	private String[][] tableDataTag = new String[0][tableHeaderTag.length];
 	private String[] antennaSet = {"Antenna1", "Antenna2", "Antenna3", "Antenna4"};
 	private String[] selectionRow;
-	private String[] eventCombo;
+	private String[] eventCombo = new String[0];
+	private String[] countTable = new String[0];
+	private JTextField maleTextField;
+	private JTextField femaleTextField;
+	private String searchText;
+	
 
 	public static void main(String[] args) {
 		FrameGui frame = new FrameGui();
@@ -105,7 +118,7 @@ public class FrameGui extends Thread {
 	private void initialize() {
 		frame = new JFrame();
 		frame.setResizable(false);
-		frame.setBounds(100, 100, 1280, 720);
+		frame.setBounds(100, 100, 1024, 680);
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 		frame.addWindowListener(new WindowAdapter() {
@@ -125,15 +138,16 @@ public class FrameGui extends Thread {
 		
 		runningPanel = new JPanel();
 		runningPanel.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Runner Table", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(51, 51, 51)));
-		runningPanel.setBounds(12, 553, 1248, 126);
+		runningPanel.setBounds(334, 12, 672, 306);
 		frame.getContentPane().add(runningPanel);
 		runningPanel.setLayout(null);
 		
 		runnerScrollPane = new JScrollPane();
-		runnerScrollPane.setBounds(12, 24, 1224, 90);
+		runnerScrollPane.setBounds(12, 59, 647, 231);
 		runningPanel.add(runnerScrollPane);
 		
 		runnerTable = new JTable();
+		runnerTable.setFont(new Font("Monospaced", Font.PLAIN, 12));
 		runnerTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		runnerTable.setModel(new DefaultTableModel(tableDataRunner, tableHeaderRunner) {
 			private static final long serialVersionUID = -9098365186691267440L;
@@ -168,22 +182,82 @@ public class FrameGui extends Thread {
 			}
 		});
 		runnerScrollPane.setViewportView(runnerTable);
+		eventComboBox = new JComboBox<Object> (eventCombo);
+		eventComboBox.setBounds(58, 24, 284, 25);
+		runningPanel.add(eventComboBox);
+		eventComboBox.setEnabled(false);
+		
+		JLabel eventLabel = new JLabel("Event");
+		eventLabel.setBounds(13, 24, 55, 25);
+		runningPanel.add(eventLabel);
+		
+		nameTextField = new JTextField();
+		nameTextField.setBounds(424, 24, 95, 25);
+		runningPanel.add(nameTextField);
+		nameTextField.setEnabled(false);
+		nameTextField.setColumns(10);
+		
+		searchLabel = new JLabel("Runner ID");
+		searchLabel.setBounds(354, 24, 70, 25);
+		runningPanel.add(searchLabel);
+		
+		searchButton = new JButton("Search Runner");
+		searchButton.setBounds(528, 25, 131, 25);
+		runningPanel.add(searchButton);
+		searchButton.setEnabled(false);
+		searchButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				searchButton.setText("Searching....");
+				searchText = nameTextField.getText();
+				if (nameTextField.getText().trim().length() > 0) {
+					boolean isConnected = db.updateRunnerList(nameTextField.getText().trim(), db.eventIDList[eventComboBox.getSelectedIndex()]);
+					if (isConnected) {
+						tableDataRunner = db.getRunnerTable();
+						ArrayList<String[]> list = new ArrayList<String[]> ();
+						for (int i = 0; i < tableDataRunner.length; i++) {
+							String[] datas = new String[tableHeaderRunner.length];
+							System.arraycopy(tableDataRunner[i], 0, datas, 0, tableHeaderRunner.length);
+							if (datas[1].equals(nameTextField.getText().trim()))
+								list.add(datas);
+						}
+						String[][] datas = new String[list.size()][tableHeaderRunner.length];
+						for (int i = 0; i < datas.length; i++) {
+							datas[i] = list.get(i);
+						}
+						if (datas.length > 0)
+							tableDataRunner = datas;
+						else
+							tableDataRunner = db.getRunnerTable();
+					} else {
+						JOptionPane.showMessageDialog(frame, "Server Error");
+						stateServerLabel.setText("No Connection");
+						connectServerButton.setSelected(false);
+						nameTextField.setEnabled(false);
+						searchButton.setEnabled(false);
+						setButton.setEnabled(false);
+						connectServerButton.setText("Connect Server");
+						setButton.setEnabled(false);
+					}
+				} else {
+					JOptionPane.showMessageDialog(frame, "Please insert name in message box");
+				}
+				searchButton.setText("Search");
+			}
+		});
 		
 		tagTablePanel = new JPanel();
-		tagTablePanel.setBorder(new TitledBorder(
-				new EtchedBorder(EtchedBorder.LOWERED, null, null), 
-				"Tag Table", 
-				TitledBorder.LEADING, 
-				TitledBorder.TOP, null, null));
-		tagTablePanel.setBounds(12, 16, 972, 525);
+		tagTablePanel.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Tagged Table", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(51, 51, 51)));
+		tagTablePanel.setBounds(338, 376, 670, 253);
 		frame.getContentPane().add(tagTablePanel);
 		tagTablePanel.setLayout(null);
 		
 		tagScrollPane = new JScrollPane();
-		tagScrollPane.setBounds(12, 31, 947, 482);
+		tagScrollPane.setBounds(12, 25, 642, 214);
 		tagTablePanel.add(tagScrollPane);
 		
 		tagTable = new JTable();
+		tagTable.setFont(new Font("Monospaced", Font.PLAIN, 12));
+		tagTable.setRowSelectionAllowed(false);
 		tagTable.setModel(new DefaultTableModel(tableDataTag, tableHeaderTag) {
 			private static final long serialVersionUID = -9098365186691267440L;
 			public boolean isCellEditable(int row, int column){
@@ -193,179 +267,168 @@ public class FrameGui extends Thread {
 		tagScrollPane.setViewportView(tagTable);
 		
 		rfidPanel = new JPanel();
-		rfidPanel.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "RFID Status", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(51, 51, 51)));
-		rfidPanel.setBounds(1000, 16, 260, 277);
+		rfidPanel.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Register Status", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(51, 51, 51)));
+		rfidPanel.setBounds(11, 475, 308, 153);
 		frame.getContentPane().add(rfidPanel);
 		rfidPanel.setLayout(null);
 		
-		ipLabel = new JLabel("IP");
-		ipLabel.setBounds(12, 30, 11, 25);
-		rfidPanel.add(ipLabel);
+		registedLabel = new JLabel("Registed");
+		registedLabel.setBounds(10, 35, 79, 25);
+		rfidPanel.add(registedLabel);
+		registedLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
+		
+		registedTextField = new JTextField("");
+		registedTextField.setBounds(121, 35, 169, 25);
+		rfidPanel.add(registedTextField);
+		registedTextField.setEditable(false);
+		registedTextField.setHorizontalAlignment(SwingConstants.CENTER);
+		
+		JLabel maleLabel = new JLabel("Male Registed");
+		maleLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
+		maleLabel.setBounds(10, 70, 79, 25);
+		rfidPanel.add(maleLabel);
+		
+		maleTextField = new JTextField("");
+		maleTextField.setHorizontalAlignment(SwingConstants.CENTER);
+		maleTextField.setEditable(false);
+		maleTextField.setBounds(121, 71, 169, 25);
+		rfidPanel.add(maleTextField);
+		
+		femaleTextField = new JTextField("");
+		femaleTextField.setHorizontalAlignment(SwingConstants.CENTER);
+		femaleTextField.setEditable(false);
+		femaleTextField.setBounds(121, 108, 169, 25);
+		rfidPanel.add(femaleTextField);
+		
+		JLabel femaleLabel = new JLabel("Female Registed");
+		femaleLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
+		femaleLabel.setBounds(10, 107, 95, 25);
+		rfidPanel.add(femaleLabel);
+		
+		JPanel statusPanel = new JPanel();
+		statusPanel.setBorder(new TitledBorder(
+				new EtchedBorder(EtchedBorder.LOWERED, null, null), 
+				"Server Status", TitledBorder.LEADING, 
+				TitledBorder.TOP, null, new Color(51, 51, 51)));
+		statusPanel.setBounds(12, 12, 313, 308);
+		frame.getContentPane().add(statusPanel);
+		statusPanel.setLayout(null);
+		
+		JLabel statusIPLabel = new JLabel("IP Server");
+		statusIPLabel.setBounds(13, 30, 80, 25);
+		statusPanel.add(statusIPLabel);
+		
+		JLabel stateLabel = new JLabel("Status");
+		stateLabel.setBounds(13, 65, 54, 25);
+		statusPanel.add(stateLabel);
+		
+		connectServerButton = new JToggleButton("Connect");
+		connectServerButton.setBounds(13, 100, 284, 25);
+		connectServerButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				connectServerButton.setText("Connecting...");
+				if (connectServerButton.isSelected()) {
+					if (!checkIPPort(ipServerTextField.getText())) {
+						JOptionPane.showMessageDialog(frame, "Your IP or port is not correct.\n Please try again");
+						stateServerLabel.setText("No Connection");
+						connectServerButton.setSelected(false);
+						nameTextField.setEnabled(false);
+						searchButton.setEnabled(false);
+						connectServerButton.setText("Connect Server");
+						eventComboBox.setEnabled(false);
+						connectServerButton.setText("Connect");
+						setButton.setEnabled(false);
+						return;
+					}					
+					db.setIP(ipServerTextField.getText().toString().trim());
+					boolean isConnected = db.updateTagList() && db.countRegisted(); 
+					if (isConnected) {
+						stateServerLabel.setText("Connect");
+						connectServerButton.setEnabled(true);
+						nameTextField.setEnabled(true);
+						searchButton.setEnabled(true);
+						connectServerButton.setText("Disconnected");
+						eventComboBox.setEnabled(true);
+						tableDataTag = db.getTagTable();
+						eventCombo = db.getEventComboBox();
+						tableDataRunner = db.getRunnerTable();
+						countTable = db.getCountTable();
+						if (eventCombo.length > 0) {
+							eventComboBox.setModel(new DefaultComboBoxModel<Object>(eventCombo));
+							eventComboBox.setSelectedIndex(0);
+						}
+						setButton.setEnabled(true);
+					} else {
+						JOptionPane.showMessageDialog(frame, "Server Error");
+						stateServerLabel.setText("No Connection");
+						connectServerButton.setSelected(false);
+						nameTextField.setEnabled(false);
+						searchButton.setEnabled(false);
+						connectServerButton.setText("Connect Server");
+						eventComboBox.setEnabled(false);
+						setButton.setEnabled(false);
+						
+					}
+				} else {
+					stateServerLabel.setText("No Connection");
+					connectServerButton.setSelected(false);
+					nameTextField.setEnabled(false);
+					searchButton.setEnabled(false);
+					connectServerButton.setText("Connect Server");
+					eventComboBox.setEnabled(false);
+					setButton.setEnabled(false);
+				}
+			}
+		});
+		statusPanel.add(connectServerButton);
+		
+		ipServerTextField = new JTextField("http://alumni.eng.kmutnb.ac.th:7777");
+		ipServerTextField.setBounds(100, 30, 201, 25);
+		statusPanel.add(ipServerTextField);
+		
+		stateServerLabel = new JLabel("No Connection");
+		stateServerLabel.setBounds(106, 65, 195, 25);
+		statusPanel.add(stateServerLabel);
+		
+		ipLabel = new JLabel("IP RFID");
+		ipLabel.setBounds(14, 137, 68, 25);
+		statusPanel.add(ipLabel);
 		ipLabel.setHorizontalAlignment(SwingConstants.LEFT);
 		
 		ipTextField = new JTextField("192.168.1.201");
-		ipTextField.setBounds(60, 30, 186, 25);
-		rfidPanel.add(ipTextField);
+		ipTextField.setBounds(100, 137, 195, 25);
+		statusPanel.add(ipTextField);
 		ipTextField.setColumns(10);
 		
 		portLabel = new JLabel("Port");
-		portLabel.setBounds(13, 65, 25, 25);
-		rfidPanel.add(portLabel);
+		portLabel.setBounds(15, 172, 41, 25);
+		statusPanel.add(portLabel);
 		portLabel.setHorizontalAlignment(SwingConstants.LEFT);
 		
 		portTextField = new JTextField("20058");
-		portTextField.setBounds(60, 65, 186, 25);
-		rfidPanel.add(portTextField);
+		portTextField.setBounds(102, 172, 193, 25);
+		statusPanel.add(portTextField);
 		portTextField.setColumns(10);
 		
 		connectButton = new JToggleButton("Connect");
-		connectButton.setBounds(13, 100, 235, 25);
-//		ipTextField
-		rfidPanel.add(connectButton);
-		
-		antennaButton = new JLabel("Antenna");
-		antennaButton.setBounds(20, 135, 47, 25);
-		rfidPanel.add(antennaButton);
-		
-		antennaComboBox = new JComboBox<Object>(antennaSet);
-		antennaComboBox.setBounds(78, 135, 170, 25);
-		rfidPanel.add(antennaComboBox);
-		antennaComboBox.setSelectedIndex(0);
-		
-		antennaComboBox.setEnabled(false);
-		
-		startButton = new JToggleButton("Start");
-		startButton.setEnabled(false);
-		startButton.setBounds(13, 170, 235, 25);
-		rfidPanel.add(startButton);
-		startButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				startButton.setText("Loading....");
-				if (startButton.isSelected()) {
-					try {
-						resetAntenna();
-						rfid.setAntenna(true, antennaComboBox.getSelectedIndex());
-						rfid.setStart(true);
-					} catch (RFIDException e) {
-						e.printStackTrace();
-					}
-					startButton.setText("Stop");
-					setButton.setEnabled(true);
-					cancelButton.setEnabled(true);
-				} else {
-					try {
-						rfid.setStart(false);
-					} catch (RFIDException e) {
-						e.printStackTrace();
-					}
-					startButton.setText("Start");
-					setButton.setEnabled(false);
-					cancelButton.setEnabled(false);
-				}
-			}
-		});
-		
-		tagSetLabel = new JLabel("Tag ID");
-		tagSetLabel.setBounds(13, 205, 38, 25);
-		rfidPanel.add(tagSetLabel);
-		tagSetLabel.setHorizontalAlignment(SwingConstants.LEFT);
-		tagSetLabel.setFont(new Font("Tahoma", Font.PLAIN, 13));
-		
-		tagLabel = new JTextField();
-		tagLabel.setBounds(63, 205, 185, 25);
-		rfidPanel.add(tagLabel);
-		tagLabel.setEditable(false);
-		tagLabel.setFont(new Font("Tahoma", Font.PLAIN, 13));
-		tagLabel.setHorizontalAlignment(SwingConstants.LEFT);
-		
-		setButton = new JButton("Set");
-		setButton.setBounds(139, 240, 109, 25);
-		rfidPanel.add(setButton);
-		setButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				setButton.setText("Setting....");
-				String name = nameTextField.getText().trim();
-				String tag = tagLabel.getText().trim();
-				if (name.length() == 0) {
-					JOptionPane.showMessageDialog(frame, "Please insert data in message box !!");
-				}
-				if (tag.length() == 0) {
-					JOptionPane.showMessageDialog(frame, "Please scan RFID !!");
-				}
-				if (runnerTable.getSelectedRow() == -1) {
-					JOptionPane.showMessageDialog(frame, "Please select name in \"Runner Table\"");
-				}
-				if (eventComboBox.getSelectedIndex() == -1) {
-					JOptionPane.showMessageDialog(frame, "Please select event in \"Event\"");
-				}
-				if (name.length() > 0 
-						&& tag.length() > 0 
-						&& runnerTable.getSelectedRow() != -1 
-						&& eventComboBox.getSelectedIndex() != -1) {
-					int reply = JOptionPane.showConfirmDialog(
-							frame, 
-							"Are you sure to set tag to runner : " + selectionRow[1] + " ?", "Really Set Tag?", 
-							JOptionPane.YES_NO_OPTION );
-					if (reply == JOptionPane.YES_OPTION){
-						boolean canAddTag = db.addTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
-						if (canAddTag) {
-							JOptionPane.showMessageDialog(frame, "Insert Complete\n" + selectionRow[1] + " has tag " + rfid.getTag());
-						} else {
-							int updateReply = JOptionPane.showConfirmDialog(
-									frame, 
-									"This tag is used or this runner is registed.\n" +
-									"Are you sure to 'update' tag to runner : " + selectionRow[1] + " ?", "Really Update Tag?", 
-									JOptionPane.YES_NO_OPTION);
-							if (updateReply == JOptionPane.YES_OPTION) {
-								boolean canDeleteRow = db.deleteRowFromTable(Rfid.tag);
-								boolean canUpdateTag = db.updateTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
-								if (canDeleteRow && canUpdateTag) {
-									JOptionPane.showMessageDialog(frame, "Update Complete\n" + selectionRow[1] + " has tag " + rfid.getTag());
-								} else  {
-									boolean canAddTagAfterUpdate = db.addTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
-									if (canAddTagAfterUpdate) {
-										JOptionPane.showMessageDialog(frame, "Update Complete");
-									}
-									else {
-										boolean canUpdateAfterAddTag = db.updateTagToTable(eventComboBox.getSelectedIndex() + 1, selectionRow[1], Rfid.tag);
-										if (canUpdateAfterAddTag)
-											JOptionPane.showMessageDialog(frame, "Update Complete");
-										else
-											JOptionPane.showMessageDialog(frame, "Update Failed");
-									}
-								}
-							}
-						}
-						tableDataRunner = db.getRunnerTable();
-			        	boolean isConnected = db.updateTagList();
-			    		if (isConnected) {
-			    			tableDataTag = db.getTagTable();
-			    		} else {
-			    			JOptionPane.showMessageDialog(frame, "Server Error");
-							stateServerLabel.setText("No Connection");
-							connectServerButton.setSelected(false);
-							nameTextField.setEnabled(false);
-							searchButton.setEnabled(false);
-							connectServerButton.setText("Connect Server");
-			    		}
-					}
-				}
-				setButton.setText("Set");
-			}
-		});
-		
-		cancelButton = new JButton("Cancel");
-		cancelButton.setBounds(13, 239, 116, 25);
-		rfidPanel.add(cancelButton);
-		cancelButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				tagLabel.setText("");
-				rfid.getReadData("", antennaComboBox.getSelectedIndex());
-			}
-		});
+		connectButton.setBounds(13, 205, 281, 25);
+		statusPanel.add(connectButton);
 		connectButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				connectButton.setText("Connecting...");
+				if (!checkIPPort(ipTextField.getText(), portTextField.getText())) {
+					JOptionPane.showMessageDialog(frame, "Your IP or port is not correct.\n Please try again");
+					connectButton.setSelected(false);
+					connectButton.setText("Connect");
+					antennaComboBox.setEnabled(false);
+					startButton.setEnabled(false);
+					setButton.setEnabled(false);
+					cancelButton.setEnabled(false);
+					connectServerButton.setText("Connect");
+					return;
+				}
+				
 				String ip = ipTextField.getText().toString().trim();
 				String port = portTextField.getText().toString().trim();
 				if (ip.length() > 0 && port.length() > 0) {
@@ -404,136 +467,213 @@ public class FrameGui extends Thread {
 			}
 		});
 		
-		JPanel statusPanel = new JPanel();
-		statusPanel.setBorder(new TitledBorder(
-				new EtchedBorder(EtchedBorder.LOWERED, null, null), 
-				"Server Status", TitledBorder.LEADING, 
-				TitledBorder.TOP, null, new Color(51, 51, 51)));
-		statusPanel.setBounds(1000, 300, 260, 242);
-		frame.getContentPane().add(statusPanel);
-		statusPanel.setLayout(null);
+		antennaComboBox = new JComboBox<Object>(antennaSet);
+		antennaComboBox.setBounds(103, 237, 191, 25);
+		statusPanel.add(antennaComboBox);
+		antennaComboBox.setSelectedIndex(0);
 		
-		JLabel statusIPLabel = new JLabel("IP");
-		statusIPLabel.setBounds(13, 30, 29, 25);
-		statusPanel.add(statusIPLabel);
+		antennaComboBox.setEnabled(false);
 		
-		JLabel stateLabel = new JLabel("State : ");
-		stateLabel.setBounds(13, 65, 56, 25);
-		statusPanel.add(stateLabel);
+		antennaButton = new JLabel("Antenna");
+		antennaButton.setBounds(20, 237, 47, 25);
+		statusPanel.add(antennaButton);
 		
-		connectServerButton = new JToggleButton("Connect Server");
-		connectServerButton.setBounds(13, 100, 235, 25);
-		connectServerButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				connectServerButton.setText("Connecting...");
-				if (connectServerButton.isSelected()) {
-					db.setIP(ipServerTextField.getText().toString().trim());
-					boolean isConnected = db.updateTagList();
-					if (isConnected) {
-						tableDataTag = db.getTagTable();
-						stateServerLabel.setText("Connect");
-						connectServerButton.setEnabled(true);
-						nameTextField.setEnabled(true);
-						searchButton.setEnabled(true);
-						connectServerButton.setText("Disconnected");
-						eventCombo = db.getEventComboBox();
-						eventComboBox.setEnabled(true);
-						if (eventCombo.length > 0) {
-							eventComboBox.setModel(new DefaultComboBoxModel<Object>(eventCombo));
-							eventComboBox.setSelectedIndex(0);
-							System.out.println(eventComboBox.getItemCount());
+		startButton = new JToggleButton("Start");
+		startButton.setBounds(13, 271, 283, 25);
+		statusPanel.add(startButton);
+		startButton.setEnabled(false);
+		startButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				startButton.setText("Loading....");
+				if (startButton.isSelected()) {
+					try {
+						resetAntenna();
+						rfid.setAntenna(true, antennaComboBox.getSelectedIndex());
+						rfid.setStart(true);
+					} catch (RFIDException e) {
+						e.printStackTrace();
+					}
+					startButton.setText("Stop");
+					setButton.setEnabled(true);
+					cancelButton.setEnabled(true);
+				} else {
+					try {
+						rfid.setStart(false);
+					} catch (RFIDException e) {
+						e.printStackTrace();
+					}
+					startButton.setText("Start");
+					setButton.setEnabled(false);
+					cancelButton.setEnabled(false);
+				}
+			}
+		});
+		
+		
+//		eventCombo = new String[0];
+		
+		dbRunnerLabel = new JLabel("Runner");
+		dbRunnerLabel.setBounds(338, 329, 50, 25);
+		frame.getContentPane().add(dbRunnerLabel);
+		
+		dbRunnerValue = new JTextField("");
+		dbRunnerValue.setEditable(false);
+		dbRunnerValue.setBounds(392, 331, 120, 25);
+		frame.getContentPane().add(dbRunnerValue);
+		dbRunnerValue.setHorizontalAlignment(SwingConstants.LEFT);
+		
+		setButton = new JButton("Set");
+		setButton.setEnabled(false);
+		setButton.setBounds(859, 330, 59, 25);
+		frame.getContentPane().add(setButton);
+		
+		cancelButton = new JButton("Cancel");
+		cancelButton.setBounds(926, 330, 80, 25);
+		frame.getContentPane().add(cancelButton);
+		
+		tagLabel = new JTextField();
+		tagLabel.setBounds(568, 330, 187, 25);
+		frame.getContentPane().add(tagLabel);
+		tagLabel.setEditable(false);
+		tagLabel.setFont(new Font("Tahoma", Font.PLAIN, 13));
+		tagLabel.setHorizontalAlignment(SwingConstants.LEFT);
+		
+		tagSetLabel = new JLabel("Tag ID");
+		tagSetLabel.setBounds(518, 330, 38, 25);
+		frame.getContentPane().add(tagSetLabel);
+		tagSetLabel.setHorizontalAlignment(SwingConstants.LEFT);
+		tagSetLabel.setFont(new Font("Tahoma", Font.PLAIN, 13));
+		
+		JLabel lblNewLabel = new JLabel("");
+		lblNewLabel.setIcon(new ImageIcon("kmutnb.png"));
+		lblNewLabel.setBounds(100, 325, 130, 130);
+		frame.getContentPane().add(lblNewLabel);
+		
+		JButton btnCheck = new JButton("Check");
+		btnCheck.setBounds(767, 330, 80, 25);
+		btnCheck.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				String tag = tagLabel.getText().toString();
+				if (tag.length() < 1) {
+					JOptionPane.showMessageDialog(frame, "Please scan RFID");
+				} else {
+					boolean canCheck = db.checkTag(tag);
+					if (canCheck) {
+						String data;
+						try {
+							data = db.getCheckTag();
+							if (data.equals("")) { 
+								JOptionPane.showMessageDialog(frame, "Tag " + tag + " is no registed");
+							} else {
+								JOptionPane.showMessageDialog(frame, "Tag " + tag + " is tagged with " + data);
+							}
+						} catch (JSONException e) {
+							JOptionPane.showMessageDialog(frame, "JSON Error");
 						}
 					} else {
-						JOptionPane.showMessageDialog(frame, "Server Error");
-						stateServerLabel.setText("No Connection");
-						connectServerButton.setSelected(false);
-						nameTextField.setEnabled(false);
-						searchButton.setEnabled(false);
-						connectServerButton.setText("Connect Server");
-						eventComboBox.setEnabled(false);
+						JOptionPane.showMessageDialog(frame, "Tag " + tag + " is no registed");
 					}
-				} else {
+				}
+			}
+		});
+		
+		
+		frame.getContentPane().add(btnCheck);
+		cancelButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				tagLabel.setText("");
+				rfid.getReadData("", antennaComboBox.getSelectedIndex());
+			}
+		});
+		
+		setButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				setButton.setText("Setting....");
+				String name = nameTextField.getText().trim();
+				String tag = tagLabel.getText().trim();
+				if (name.length() == 0) {
+					JOptionPane.showMessageDialog(frame, "Please insert data in Runner ID");
+					setButton.setText("Set");
+					return;
+				}
+				if (tag.length() == 0) {
+					JOptionPane.showMessageDialog(frame, "Please scan RFID !!");
+					setButton.setText("Set");
+					return;
+				}
+				if (runnerTable.getSelectedRow() == -1) {
+					JOptionPane.showMessageDialog(frame, "Please select name in \"Runner Table\"");
+					setButton.setText("Set");
+					return;
+				}
+				if (eventComboBox.getSelectedIndex() == -1) {
+					JOptionPane.showMessageDialog(frame, "Please select event in \"Event\"");
+					setButton.setText("Set");
+					return;
+				}
+				int eventID = Integer.parseInt(db.eventIDList[eventComboBox.getSelectedIndex()]);
+				int reply = JOptionPane.showConfirmDialog(
+						frame, 
+						"Are you sure to set tag to runner : " + selectionRow[1] + " ?", "Really Set Tag?", 
+						JOptionPane.YES_NO_OPTION );
+				if (reply == JOptionPane.YES_OPTION){
+					boolean canAddTag = db.addTagToTable(eventID, selectionRow[1], Rfid.tag);
+					if (canAddTag) {
+						JOptionPane.showMessageDialog(frame, "Insert Complete\n" + selectionRow[1] + " has tag " + rfid.getTag());
+						runnerTable.setRowSelectionInterval(0, runnerTable.getSelectedRow() + 1);
+						int[] colSelects = runnerTable.getSelectedRows();
+						if (colSelects.length > 0) {
+							int colSelect = colSelects[0];
+							selectionRow = tableDataRunner[colSelect];
+							nameTextField.setText(selectionRow[1]);
+						}
+						
+					} else {
+						int updateReply = JOptionPane.showConfirmDialog(
+								frame, 
+								"This tag is used or this runner is registed.\n" +
+								"Are you sure to 'update' tag to runner : " + selectionRow[1] + " ?", "Really Update Tag?", 
+								JOptionPane.YES_NO_OPTION);
+						if (updateReply == JOptionPane.YES_OPTION) {
+							boolean canDeleteRow = db.deleteRowFromTable(Rfid.tag);
+							boolean canUpdateTag = db.updateTagToTable(eventID, selectionRow[1], Rfid.tag);
+							if (canDeleteRow && canUpdateTag) {
+								JOptionPane.showMessageDialog(frame, "Update Complete\n" + selectionRow[1] + " has tag " + rfid.getTag());
+							} else  {
+								boolean canAddTagAfterUpdate = db.addTagToTable(eventID, selectionRow[1], Rfid.tag);
+								if (canAddTagAfterUpdate) {
+									JOptionPane.showMessageDialog(frame, "Update Complete");
+								}
+								else {
+									boolean canUpdateAfterAddTag = db.updateTagToTable(eventID, selectionRow[1], Rfid.tag);
+									if (canUpdateAfterAddTag)
+										JOptionPane.showMessageDialog(frame, "Update Complete");
+									else
+										JOptionPane.showMessageDialog(frame, "Update Failed");
+								}
+							}
+						}
+					}
+				}
+				boolean isConnected = db.updateRunnerList(searchText, db.eventIDList[eventComboBox.getSelectedIndex()]) &&
+						db.updateTagList() && 
+						db.countRegisted();
+	    		if (isConnected) {
+	    			tableDataRunner = db.getRunnerTable();
+	    			tableDataTag = db.getTagTable();
+	    			countTable = db.getCountTable();
+	    		} else {
+	    			JOptionPane.showMessageDialog(frame, "Server Error");
 					stateServerLabel.setText("No Connection");
 					connectServerButton.setSelected(false);
 					nameTextField.setEnabled(false);
 					searchButton.setEnabled(false);
 					connectServerButton.setText("Connect Server");
-					eventComboBox.setEnabled(false);
-				}
+					setButton.setEnabled(false);
+	    		}
+				setButton.setText("Set");
 			}
 		});
-		statusPanel.add(connectServerButton);
-		
-		ipServerTextField = new JTextField("192.168.1.193:7777");
-		ipServerTextField.setBounds(60, 30, 188, 25);
-		statusPanel.add(ipServerTextField);
-		
-		stateServerLabel = new JLabel("No Connection");
-		stateServerLabel.setBounds(60, 65, 188, 25);
-		statusPanel.add(stateServerLabel);
-		
-		searchLabel = new JLabel("Runner ID");
-		searchLabel.setBounds(14, 135, 68, 25);
-		statusPanel.add(searchLabel);
-		
-		nameTextField = new JTextField();
-		nameTextField.setEnabled(false);
-		nameTextField.setBounds(84, 135, 168, 22);
-		statusPanel.add(nameTextField);
-		nameTextField.setColumns(10);
-		
-		searchButton = new JButton("Search");
-		searchButton.setEnabled(false);
-		searchButton.setBounds(13, 170, 238, 25);
-		
-		searchButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				searchButton.setText("Searching....");
-				if (nameTextField.getText().trim().length() > 0) {
-					boolean isConnected = db.updateRunnerList(nameTextField.getText().trim());
-					if (isConnected) {
-						tableDataRunner = db.getRunnerTable();
-						ArrayList<String[]> list = new ArrayList<String[]> ();
-						for (int i = 0; i < tableDataRunner.length; i++) {
-							String[] datas = new String[tableHeaderRunner.length];
-							System.arraycopy(tableDataRunner[i], 0, datas, 0, tableHeaderRunner.length);
-							if (datas[1].equals(nameTextField.getText().trim()))
-								list.add(datas);
-						}
-						String[][] datas = new String[list.size()][tableHeaderRunner.length];
-						for (int i = 0; i < datas.length; i++) {
-							datas[i] = list.get(i);
-						}
-						if (datas.length > 0)
-							tableDataRunner = datas;
-						else
-							tableDataRunner = db.getRunnerTable();
-					} else {
-						JOptionPane.showMessageDialog(frame, "Server Error");
-						stateServerLabel.setText("No Connection");
-						connectServerButton.setSelected(false);
-						nameTextField.setEnabled(false);
-						searchButton.setEnabled(false);
-						connectServerButton.setText("Connect Server");
-					}
-				} else {
-					JOptionPane.showMessageDialog(frame, "Please insert name in message box");
-				}
-				searchButton.setText("Search");
-			}
-		});
-		statusPanel.add(searchButton);
-		
-		eventCombo = new String[0];
-		eventComboBox = new JComboBox<Object> (eventCombo);
-		eventComboBox.setEnabled(false);
-		eventComboBox.setBounds(84, 207, 164, 25);
-		statusPanel.add(eventComboBox);
-		
-		JLabel eventLabel = new JLabel("Event");
-		eventLabel.setBounds(13, 207, 55, 25);
-		statusPanel.add(eventLabel);
 	}
 	
 	private void update() {
@@ -551,5 +691,31 @@ public class FrameGui extends Thread {
 				modelTag.setValueAt(tableDataTag[i][j], i, j);
 			}
 		}
+		if (runnerTable.getSelectedRow() != -1 && tableDataRunner.length > 0) {
+			dbRunnerValue.setText(tableDataRunner[runnerTable.getSelectedRow()][0]);
+		}
+		if (countTable.length > 0) {
+			registedTextField.setText(countTable[1] + " / " + countTable[0]);
+			maleTextField.setText(countTable[4] + " / " + countTable[3]);
+			femaleTextField.setText(countTable[7] + " / " + countTable[6]);
+		}
+	}
+	
+	private boolean checkIPPort(String text) {
+		Pattern p = Pattern.compile("^"
+                + "http://(((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}"
+                + "|"
+                + "localhost"
+                + "|"
+                + "(([0-9]{1,3}\\.){3})[0-9]{1,3})"
+                + ":"
+                + "[0-9]{1,5}$");
+		return p.matcher(text).matches();
+	}
+	
+	private boolean checkIPPort(String ip, String port) {
+		Pattern pPort = Pattern.compile("^[0-9]{1,5}$");
+		Pattern pIP = Pattern.compile("^(([0-9]{1,3}\\.){3})[0-9]{1,3}");
+		return pIP.matcher(ip).matches() && pPort.matcher(port).matches();
 	}
 }
